@@ -24,7 +24,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
             $response['message'] = "Receipt not issued";
         }elseif ($results == 4){
             $response['error'] = true;
-            $response['message'] = "Receipt not issued but insufficient bal for text";
+            $response['message'] = "Receipt issued but insufficient bal for text";
         }elseif ($results == 5){
             $response['error'] = true;
             $response['message'] = "Receipt issued but invalid api key";
