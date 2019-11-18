@@ -53,5 +53,5 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
     $response['error'] = true;
     $response['message'] = "Invalid Request";
 }
-
+//Echo to android
 echo json_encode($response);
