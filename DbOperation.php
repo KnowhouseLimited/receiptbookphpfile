@@ -17,7 +17,9 @@ class DbOperation
         }else {
             $password = md5($pass);
             $confirm_password = md5($confirm_pass);
-            $query = 'call register_users(?,?,?,?,?)';
+            $query = "insert into users_credential 
+                        (full_name, company, phone_number, user_pass, confirm_password) 
+                        values (?,?,?,?,?);";
             //$q=$this->con->init();
             $stmt = $this->con->prepare($query);
             $stmt->bind_param('ssiss', $full_name, $company, $phone_number, $password, $confirm_password);
@@ -83,13 +85,14 @@ class DbOperation
     public function issueCustomerReceipt($customer_name,$customer_phone_no,
                     $purchased_item,$amount_paid,$receipt_issued_by){
 
-            $query = $this->con->prepare("select id,full_name from users_credential where phone_number = ? ");
+            $query = $this->con->prepare("select id,full_name,company from users_credential where phone_number = ? ");
             $query->bind_param("i",$receipt_issued_by);
             $query->execute();
-            $query->bind_result($user_id,$users_name);
+            $query->bind_result($user_id,$users_name,$users_company);
             while($query->fetch()){
                 $users_full_name = $users_name;
                 $users_identity = $user_id;
+				$users_company_name = $users_company;
             }
 
             $transaction = "A receipt was issued to ".$customer_name." by ".$users_full_name." for the purchase of ".$purchased_item.
@@ -105,7 +108,7 @@ class DbOperation
             //Send sms notification
 
             if($stmt->execute()){
-                $smsResult = $this->sendMessage($customer_phone_no,$transaction);
+                $smsResult = $this->sendMessage($customer_phone_no,$transaction,$users_company_name);
 
                 switch($smsResult){
                     case "1000":                //Message sent
@@ -137,11 +140,11 @@ class DbOperation
             }
     }
 
-    public function sendMessage($phone_number,$sms_message){
+    public function sendMessage($phone_number,$sms_message,$company){
         $key="8e53a72b3d651b34d987"; //your unique API key
         $message=urlencode(trim($sms_message,"\n")); //encode url
         $phone = urlencode(trim($phone_number,"\n"));
-        $sender_id = "KnowHouse";
+        $sender_id = urlencode(trim($company,"\n"));
 
         /*******************API URL FOR SENDING MESSAGES********/
         $url="http://clientlogin.bulksmsgh.com/smsapi?key=$key&to=$phone&msg=$message&sender_id=$sender_id";
@@ -155,5 +158,22 @@ class DbOperation
 
         return $result;
 
+    }
+
+    public function updateUserInfo($userid,$image,$image_string,$full_name,$phone_number,$company_name){
+
+        $stmt = $this->con->prepare("UPDATE users_credential
+                                                    set full_name = ?, 
+                                                        phone_number = ?,
+                                                        image_url = ?,
+                                                        image_bitmap = ?,
+                                                        company = ?
+                                                    where id = ?");
+        $stmt->bind_param("sisssi",$full_name,$phone_number,$image_string,$image,$company_name,$userid);
+        if($stmt->execute()){
+            return 1;
+        }
+        else
+            return 0;
     }
 }

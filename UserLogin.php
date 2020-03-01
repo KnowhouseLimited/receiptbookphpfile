@@ -13,6 +13,9 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
             $response['phone_number'] = $user['phone_number'];
             $response['company'] = $user['company'];
             $response['full_name'] = $user['full_name'];
+            $response['image'] = $user['image_bitmap'];
+            $response['image_url'] = $user['image_url'];
+			$response['message'] = "Login Successful";
         } else {
             $response['error'] = true;
             $response['message'] = "Invalid phone number or password";
