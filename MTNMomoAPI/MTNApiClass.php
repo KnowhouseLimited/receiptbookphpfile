@@ -97,9 +97,10 @@ class MTNApiClass
 
     public function generatingApiToken($xReference,$apiKey)
     {
+        $api = json_decode($apiKey);
 
         $username = $xReference;
-        $password = $apiKey;
+        $password = $api->{'apiKey'};
         $auth = $username . ':' . $password;
         $credentials = base64_encode($auth);
 
@@ -118,6 +119,69 @@ class MTNApiClass
                 "Ocp-Apim-Subscription-Key: 431be0a47b674d57b7c64f247161b3f2",
                 "Content-Length: 0",
                 "Authorization: Basic $credentials"
+            ),
+        ));
+
+        $response = curl_exec($curl);
+
+        curl_close($curl);
+        return $response;
+    }
+
+    public function requestToPay($apiToken,$xReference)
+    {
+
+        $token = json_decode($apiToken);
+        $tokenObj = $token->{'access_token'};
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => "{\r\n  \"amount\": \"5.0\",\r\n  \"currency\": \"EUR\",\r\n  \"externalId\": \"ReceiptPayment\",\r\n  \"payer\": {\r\n    \"partyIdType\": \"MSISDN\",\r\n    \"partyId\": \"0548409503\"\r\n  },\r\n  \"payerMessage\": \"Pay for 20 pages of the receipt book\",\r\n  \"payeeNote\": \"Payment is non-refundable\"\r\n}",
+            CURLOPT_HTTPHEADER => array(
+                "X-Reference-Id: $xReference",
+                "X-Target-Environment: sandbox",
+                "Ocp-Apim-Subscription-Key: 431be0a47b674d57b7c64f247161b3f2",
+                "Content-Type: application/json",
+                "Authorization: Bearer $tokenObj"
+            ),
+        ));
+
+        $response = curl_exec($curl);
+
+        curl_close($curl);
+        return $response;
+
+    }
+
+    public function getRequestToPay($getAPIToken,$uuid)
+    {
+
+        $apiToken = json_decode($getAPIToken);
+        $token = $apiToken->{'access_token'};
+
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay/$uuid",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "GET",
+            CURLOPT_HTTPHEADER => array(
+                "X-Target-Environment: sandbox",
+                "Ocp-Apim-Subscription-Key: 431be0a47b674d57b7c64f247161b3f2",
+                "Authorization: Bearer $token"
             ),
         ));
 
