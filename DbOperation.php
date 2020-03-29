@@ -176,4 +176,121 @@ class DbOperation
         else
             return 0;
     }
+
+    public function getDataValueForDataFeed($phone_number,$current_date){
+        $query = $this->con->prepare("select id, company 
+                                            from users_credential 
+                                            where phone_number = ?");
+        $query->bind_param("i",$phone_number);
+        if($query->execute()){
+            $query->bind_result($userid,$company);
+            while ($query->fetch()){
+                $user_id_no = $userid;
+                $user_company_name = $company;
+            }
+
+            $smt = $this->con->prepare("select COUNT(purchased_item) as 
+                                                count_of_items
+                                                from users_trasactions
+                                                where users_credential_id = ? and 
+                                                      date = ?
+                                                group by purchased_item");
+            $smt->bind_param("is",$user_id_no,$current_date);
+            if($smt->execute()){
+                $product_count_sum = 0;
+                $maximum = 0;
+                $smt->bind_result($count_of_each_item);
+                while ($smt->fetch()){
+                    if($count_of_each_item > $maximum)
+                        $maximum = $count_of_each_item;
+                    $product_count_sum  += $count_of_each_item;
+                }
+
+            }
+
+            $statement = $this->con->prepare("select SUM(amount_paid) as totalAmountEarned
+                                                    from users_trasactions
+                                                    where users_credential_id = ?
+                                                    and date = ?");
+            $statement->bind_param("is",$user_id_no,$current_date);
+            $statement->bind_result($totalEarnedMoney);
+            if($statement->execute()){
+                while ($statement->fetch()){
+                    $totalMoneyEarnedInADay = $totalEarnedMoney;
+                }
+            }
+
+            $stmt = $this->con->prepare("select purchased_item 
+                                                from users_trasactions
+                                                where users_credential_id = ?
+                                                and date = ?
+                                                group by  purchased_item
+                                                having count(purchased_item) = ?");
+            $stmt->bind_param("isi",$user_id_no,$current_date,$maximum);
+            $stmt->bind_result($most_purchase_item_of_day);
+            $most_purchased="";
+            if($stmt->execute()){
+                while ($stmt->fetch()){
+                    $most_purchased = $most_purchase_item_of_day;
+                }
+
+                $temp = array();
+                $temp['issuerCompany'] = $user_company_name;
+                $temp['noReceiptIssued'] = $product_count_sum;
+                $temp['totalItemsSold'] = $product_count_sum;
+                $temp['itemWithHighestReceipt'] = $most_purchased;
+                $temp['totalPriceOfItemsSold'] = $totalMoneyEarnedInADay;
+                $temp['error'] = false;
+            }else{
+                $temp['error'] = true;
+            }
+        }
+
+
+        $dataValues = array();
+        array_push($dataValues,$temp);
+        return $dataValues;
+
+    }
+
+    public function getValueForGraph($user_phone,$date){
+        $stmt = $this->con->prepare("select id
+                                            from users_credential
+                                            where phone_number = ?");
+
+        $stmt->bind_param("i",$user_phone);
+        $stmt->bind_result($userId);
+        if($stmt->execute()){
+            while($stmt->fetch()){
+                $user_id = $userId;
+            }
+
+            $query = $this->con->prepare("select purchased_item, 
+                                                    count(purchased_item) as barentry
+                                                from users_trasactions
+                                                where users_credential_id = ?
+                                                        and date = ?
+                                                group by purchased_item");
+            $query->bind_param("is",$user_id,$date);
+
+            $graphValues = array();
+
+            if($query->execute()){
+                $query->bind_result($item,$entries);
+                while($query->fetch()){
+                    $temp  = array();
+                    $temp['item'] = $item;
+                    $temp['entry'] = $entries;
+                    $temp['error'] = false;
+                    array_push($graphValues,$temp);
+                }
+                return $graphValues;
+            }else{
+                $temp = array();
+                $temp['error'] = true;
+            }
+        }
+        array_push($graphValues,$temp);
+        return $graphValues;
+    }
 }
