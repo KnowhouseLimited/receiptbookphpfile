@@ -293,4 +293,45 @@ class DbOperation
         array_push($graphValues,$temp);
         return $graphValues;
     }
+
+
+    public function getValueForPieChart($user_phone){
+        $stmt = $this->con->prepare("select id
+                                            from users_credential
+                                            where phone_number = ?");
+
+        $stmt->bind_param("i",$user_phone);
+        $stmt->bind_result($userId);
+        if($stmt->execute()){
+            while($stmt->fetch()){
+                $user_id = $userId;
+            }
+
+            $query = $this->con->prepare("select purchased_item, 
+                                                    count(purchased_item) as barentry
+                                                from users_trasactions
+                                                where users_credential_id = ?
+                                                group by purchased_item");
+            $query->bind_param("i",$user_id);
+
+            $graphValues = array();
+
+            if($query->execute()){
+                $query->bind_result($item,$entries);
+                while($query->fetch()){
+                    $temp  = array();
+                    $temp['item'] = $item;
+                    $temp['entry'] = $entries;
+                    $temp['error'] = false;
+                    array_push($graphValues,$temp);
+                }
+                return $graphValues;
+            }else{
+                $temp = array();
+                $temp['error'] = true;
+            }
+        }
+        array_push($graphValues,$temp);
+        return $graphValues;
+    }
 }
